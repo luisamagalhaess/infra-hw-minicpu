@@ -67,10 +67,10 @@ class MiniCPU:
             self.memoria[self._endereco(args[1])] = self.registradores[origem]
         elif opcode == "ADD":
             destino = self._indice_registrador(args[0])
-            self.registradores[destino] += self._valor(args[1])
+            self.registradores[destino] = (self.registradores[destino] + self._valor(args[1])) & 0xFF
         elif opcode == "SUB":
             destino = self._indice_registrador(args[0])
-            self.registradores[destino] -= self._valor(args[1])
+            self.registradores[destino] = (self.registradores[destino] - self._valor(args[1])) & 0xFF
         elif opcode == "MOV":
             destino = self._indice_registrador(args[0])
             self.registradores[destino] = self._valor(args[1])
@@ -185,7 +185,7 @@ class MiniCPU:
         return opcode, op1, op2
 
     def run(self):
-        while self.rodando:
+        while self.rodando and self.pc < 256:
             self.ciclo += 1
 
             opcode, op1, op2 = self.fetch()
