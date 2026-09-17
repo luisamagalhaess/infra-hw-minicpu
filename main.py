@@ -174,3 +174,12 @@ class MiniCPU:
             self.memoria[inicio + i] = programa[i]
 
         self.pc = inicio
+
+    def fetch(self):
+        opcode = self.memoria[self.pc]
+        op1 = self.memoria[self.pc + 1]
+        op2 = self.memoria[self.pc + 2]
+
+        self.pc = self.pc + 3
+
+        return opcode, op1, op2
