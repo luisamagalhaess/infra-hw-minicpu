@@ -89,36 +89,34 @@ class MiniCPU:
         
     def decode(self, opcode, operando1, operando2):
         if opcode == 0x01:
-            instrucao = "LOAD"
+            return "LOAD", f"R{operando1}", operando2
 
         elif opcode == 0x02:
-            instrucao = "STORE"
+            return "STORE", f"R{operando1}", operando2
 
         elif opcode == 0x03:
-            instrucao = "ADD"
+            return "ADD", f"R{operando1}", f"R{operando2}"
 
         elif opcode == 0x04:
-            instrucao = "SUB"
+            return "SUB", f"R{operando1}", f"R{operando2}"
 
         elif opcode == 0x05:
-            instrucao = "MOV"
+            return "MOV", f"R{operando1}", operando2
 
         elif opcode == 0x06:
-            instrucao = "CMP"
+            return "CMP", f"R{operando1}", f"R{operando2}"
 
         elif opcode == 0x07:
-            instrucao = "JMP"
+            return "JMP", operando1
 
         elif opcode == 0x08:
-            instrucao = "JZ"
+            return "JZ", operando1
 
         elif opcode == 0x09:
-            instrucao = "JNZ"
+            return "JNZ", operando1
 
         elif opcode == 0x0A:
-            instrucao = "HALT"
+            return "HALT",
 
         else:
-            instrucao = "INVALIDA"
-
-        return instrucao, operando1, operando2
+            return "INVALIDA",
