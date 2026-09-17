@@ -120,3 +120,57 @@ class MiniCPU:
 
         else:
             return "INVALIDA",
+        
+    def trace(self, instrucao):
+        print(
+            f"Ciclo {self.ciclo}: {instrucao} | "
+            f"R0={self.registradores[0]} "
+            f"R1={self.registradores[1]} "
+            f"R2={self.registradores[2]} "
+            f"R3={self.registradores[3]} | "
+            f"PC={self.pc} ZF={self.zf}"
+        )
+        
+    def carregar_programa(self):
+        valores = [3, 7, 2, 5, 1, 8, 4, 6]
+
+        for i in range(8):
+            self.memoria[0x10 + i] = valores[i]
+
+        programa = [
+            0x05, 0x00, 0x00,
+
+            0x01, 0x01, 0x10,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x11,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x12,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x13,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x14,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x15,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x16,
+            0x03, 0x00, 0x01,
+
+            0x01, 0x01, 0x17,
+            0x03, 0x00, 0x01,
+
+            0x02, 0x00, 0x20,
+            0x0A, 0x00, 0x00
+        ]
+
+        inicio = 0x30
+
+        for i in range(len(programa)):
+            self.memoria[inicio + i] = programa[i]
+
+        self.pc = inicio
