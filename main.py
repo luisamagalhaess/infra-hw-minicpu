@@ -183,3 +183,25 @@ class MiniCPU:
         self.pc = self.pc + 3
 
         return opcode, op1, op2
+
+    def run(self):
+        while self.rodando:
+            self.ciclo += 1
+
+            opcode, op1, op2 = self.fetch()
+
+            instrucao = self.decode(opcode, op1, op2)
+
+            self.execute(instrucao)
+
+            self.trace(instrucao)
+
+
+if __name__ == "__main__":
+    cpu = MiniCPU()
+
+    cpu.carregar_programa()
+
+    cpu.run()
+
+    print("\nResultado final:", cpu.memoria[0x20])
