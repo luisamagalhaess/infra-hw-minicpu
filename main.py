@@ -14,78 +14,68 @@ class MiniCPU:
         self.rodando = True
         self.ciclo = 0
 
-    def _indice_registrador(self, nome):
-        """Converte R0..R3 em índices e rejeita registradores inexistentes."""
-        if not isinstance(nome, str) or nome.upper() not in ("R0", "R1", "R2", "R3"):
-            raise ValueError(f"Registrador inválido: {nome!r}")
-        return int(nome[1])
+    def _indice_registrador(self, indice):
+        """Na ISA, R0..R3 são representados pelos inteiros 0..3."""
+        if type(indice) is not int or not 0 <= indice < len(self.registradores):
+            raise ValueError(f"Registrador inválido: {indice!r}")
+        return indice
 
-    def _valor(self, operando):
-        """Lê um registrador (R0..R3) ou um valor imediato inteiro."""
-        if isinstance(operando, str):
-            return self.registradores[self._indice_registrador(operando)]
-        if type(operando) is not int:
-            raise ValueError(f"Operando inválido: {operando!r}")
-        return operando
-
-    def _endereco(self, operando):
-        endereco = self._valor(operando)
-        if not 0 <= endereco < len(self.memoria):
-            raise ValueError(f"Endereço de memória inválido: {endereco}")
-        return endereco
+    def _byte(self, valor):
+        if type(valor) is not int or not 0 <= valor <= 0xFF:
+            raise ValueError(f"Valor fora do intervalo 0..255: {valor!r}")
+        return valor
 
     def execute(self, instrucao):
-        """Executa uma instrução decodificada como (opcode, operando, ...).
+        """Executa (mnemônico, operando1, operando2) retornado pelo Decode.
 
-        O Fetch é responsável por avançar o PC nas instruções comuns. Apenas
-        JMP, JZ e JNZ alteram o PC aqui.
+        Cada instrução ocupa três bytes; operandos não usados valem zero.
+        O Fetch avança o PC em 3 antes desta chamada. Só os saltos tomados
+        alteram o PC aqui.
         """
         if not self.rodando:
             return
-        if not isinstance(instrucao, (tuple, list)) or not instrucao:
-            raise ValueError("Instrução deve ser uma tupla/lista não vazia")
+        if not isinstance(instrucao, (tuple, list)) or len(instrucao) != 3:
+            raise ValueError("Instrução deve conter mnemônico e dois operandos")
 
-        opcode, *args = instrucao
-        if not isinstance(opcode, str):
-            raise ValueError(f"Opcode inválido: {opcode!r}")
-        opcode = opcode.upper()
-        quantidade = {
-            "LOAD": 2, "STORE": 2, "ADD": 2, "SUB": 2,
-            "MOV": 2, "CMP": 2, "JMP": 1, "JZ": 1,
-            "JNZ": 1, "HALT": 0,
-        }
-        if opcode not in quantidade:
-            raise ValueError(f"Opcode desconhecido: {opcode}")
-        if len(args) != quantidade[opcode]:
-            raise ValueError(f"{opcode} espera {quantidade[opcode]} operando(s)")
+        opcode, a, b = instrucao
 
         if opcode == "LOAD":
-            destino = self._indice_registrador(args[0])
-            self.registradores[destino] = self.memoria[self._endereco(args[1])]
+            self.registradores[self._indice_registrador(a)] = self.memoria[self._byte(b)]
         elif opcode == "STORE":
-            origem = self._indice_registrador(args[0])
-            self.memoria[self._endereco(args[1])] = self.registradores[origem]
+            self.memoria[self._byte(b)] = self.registradores[self._indice_registrador(a)]
         elif opcode == "ADD":
-            destino = self._indice_registrador(args[0])
-            self.registradores[destino] += self._valor(args[1])
+            destino = self._indice_registrador(a)
+            origem = self._indice_registrador(b)
+            self.registradores[destino] = (
+                self.registradores[destino] + self.registradores[origem]
+            ) & 0xFF
         elif opcode == "SUB":
-            destino = self._indice_registrador(args[0])
-            self.registradores[destino] -= self._valor(args[1])
+            destino = self._indice_registrador(a)
+            origem = self._indice_registrador(b)
+            self.registradores[destino] = (
+                self.registradores[destino] - self.registradores[origem]
+            ) & 0xFF
         elif opcode == "MOV":
-            destino = self._indice_registrador(args[0])
-            self.registradores[destino] = self._valor(args[1])
+            self.registradores[self._indice_registrador(a)] = self._byte(b)
         elif opcode == "CMP":
-            self.zf = int(self._valor(args[0]) == self._valor(args[1]))
+            self.zf = int(
+                self.registradores[self._indice_registrador(a)]
+                == self.registradores[self._indice_registrador(b)]
+            )
         elif opcode == "JMP":
-            self.pc = self._valor(args[0])
+            self.pc = self._byte(a)
         elif opcode == "JZ":
+            destino = self._byte(a)
             if self.zf == 1:
-                self.pc = self._valor(args[0])
+                self.pc = destino
         elif opcode == "JNZ":
+            destino = self._byte(a)
             if self.zf == 0:
-                self.pc = self._valor(args[0])
+                self.pc = destino
         elif opcode == "HALT":
             self.rodando = False
+        else:
+            raise ValueError(f"Instrução desconhecida: {opcode!r}")
         
     def decode(self, opcode, operando1, operando2):
         if opcode == 0x01:

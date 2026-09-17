@@ -4,70 +4,61 @@ from main import MiniCPU
 
 
 class ExecuteTests(unittest.TestCase):
-    def test_operacoes_e_desvios(self):
+    def test_decode_e_execute_usam_indices_numericos(self):
         cpu = MiniCPU()
-        cpu.execute(("MOV", "R0", 12))
-        cpu.execute(("MOV", "R1", 3))
-        cpu.execute(("SUB", "R0", "R1"))
+        cpu.execute(cpu.decode(0x05, 0, 12))  # MOV R0, 12
+        cpu.execute(cpu.decode(0x05, 1, 3))   # MOV R1, 3
+        cpu.execute(cpu.decode(0x04, 0, 1))   # SUB R0, R1
         self.assertEqual(cpu.registradores[0], 9)
-        cpu.execute(("ADD", "R0", 1))
-        self.assertEqual(cpu.registradores[0], 10)
 
-        cpu.execute(("STORE", "R0", 20))
-        cpu.execute(("LOAD", "R2", 20))
-        self.assertEqual(cpu.registradores[2], 10)
+        cpu.execute(cpu.decode(0x03, 0, 1))   # ADD R0, R1
+        self.assertEqual(cpu.registradores[0], 12)
+        cpu.execute(cpu.decode(0x02, 0, 0x20))  # STORE R0, 0x20
+        cpu.execute(cpu.decode(0x01, 2, 0x20))  # LOAD R2, 0x20
+        self.assertEqual(cpu.memoria[0x20], 12)
+        self.assertEqual(cpu.registradores[2], 12)
 
-        cpu.execute(("CMP", "R0", "R2"))
+        cpu.execute(cpu.decode(0x06, 0, 2))  # CMP igual
         self.assertEqual(cpu.zf, 1)
-        cpu.execute(("JNZ", 50))
-        self.assertEqual(cpu.pc, 0)
-        cpu.execute(("JZ", 5))
-        self.assertEqual(cpu.pc, 5)
+        cpu.pc = 30  # Fetch já teria avançado o PC
+        cpu.execute(cpu.decode(0x09, 90, 0))  # JNZ não tomado
+        self.assertEqual(cpu.pc, 30)
+        cpu.execute(cpu.decode(0x08, 60, 0))  # JZ tomado
+        self.assertEqual(cpu.pc, 60)
 
-        cpu.execute(("CMP", "R0", "R1"))
+        cpu.execute(cpu.decode(0x06, 0, 1))  # CMP diferente
         self.assertEqual(cpu.zf, 0)
-        cpu.execute(("JZ", 50))
-        self.assertEqual(cpu.pc, 5)
-        cpu.execute(("JNZ", 6))
-        self.assertEqual(cpu.pc, 6)
-        cpu.execute(("JMP", 7))
-        self.assertEqual(cpu.pc, 7)
+        cpu.execute(cpu.decode(0x08, 90, 0))  # JZ não tomado
+        self.assertEqual(cpu.pc, 60)
+        cpu.execute(cpu.decode(0x09, 63, 0))  # JNZ tomado
+        self.assertEqual(cpu.pc, 63)
+        cpu.execute(cpu.decode(0x07, 66, 0))  # JMP
+        self.assertEqual(cpu.pc, 66)
 
-        cpu.execute(("HALT",))
+        cpu.execute(cpu.decode(0x0A, 0, 0))  # HALT
         self.assertFalse(cpu.rodando)
-        cpu.execute(("MOV", "R0", 99))
-        self.assertEqual(cpu.registradores[0], 10)
+        cpu.execute(cpu.decode(0x05, 0, 99))
+        self.assertEqual(cpu.registradores[0], 12)
 
-    def test_somatorio_de_array(self):
+    def test_soma_e_subtracao_fazem_wrap_em_oito_bits(self):
         cpu = MiniCPU()
-        cpu.memoria[100:104] = [2, 3, 5, 7]
-        programa = [
-            ("MOV", "R0", 0),
-            ("MOV", "R1", 100),
-            ("MOV", "R2", 104),
-            ("CMP", "R1", "R2"),
-            ("JZ", 9),
-            ("LOAD", "R3", "R1"),
-            ("ADD", "R0", "R3"),
-            ("ADD", "R1", 1),
-            ("JMP", 3),
-            ("HALT",),
-        ]
+        cpu.execute(("MOV", 0, 255))
+        cpu.execute(("MOV", 1, 1))
+        cpu.execute(("ADD", 0, 1))
+        self.assertEqual(cpu.registradores[0], 0)
+        cpu.execute(("SUB", 0, 1))
+        self.assertEqual(cpu.registradores[0], 255)
 
-        for _ in range(100):
-            if not cpu.rodando:
-                break
-            instrucao = programa[cpu.pc]
-            cpu.pc += 1  # responsabilidade do Fetch
-            cpu.execute(instrucao)
-
-        self.assertFalse(cpu.rodando)
-        self.assertEqual(cpu.registradores[0], 17)
-
-    def test_endereco_invalido(self):
+    def test_operandos_invalidos(self):
         cpu = MiniCPU()
         with self.assertRaises(ValueError):
-            cpu.execute(("LOAD", "R0", 256))
+            cpu.execute(("LOAD", 4, 0))
+        with self.assertRaises(ValueError):
+            cpu.execute(("LOAD", 0, 256))
+        with self.assertRaises(ValueError):
+            cpu.execute(("MOV", 0, 256))
+        with self.assertRaises(ValueError):
+            cpu.execute(("INVALIDA", 0, 0))
 
 
 if __name__ == "__main__":
