@@ -24,3 +24,33 @@ a condição é verdadeira. `HALT` define `rodando = False`.
 
 O Fetch deve avançar o PC antes de chamar `execute`. O Execute só muda o PC
 em desvios tomados. Quando `rodando` é falso, `execute` não faz mais nada.
+
+## Decode (Luísa)
+
+`MiniCPU.decode(opcode, operando1, operando2)` recebe o opcode e os operandos produzidos pelo Fetch e identifica qual instrução deve ser executada.
+
+Os opcodes reconhecidos são `LOAD`, `STORE`, `ADD`, `SUB`, `MOV`, `CMP`, `JMP`, `JZ`, `JNZ` e `HALT`.
+
+O Decode também adapta os operandos para o formato esperado pelo Execute. Índices de registradores são convertidos para `"R0"` a `"R3"`.
+
+Exemplo:
+
+```python
+cpu.decode(0x03, 0, 1)
+# retorna ("ADD", "R0", "R1")
+
+cpu.decode(0x05, 2, 10)
+# retorna ("MOV", "R2", 10)
+
+cpu.decode(0x0A, 0, 0)
+# retorna ("HALT",)
+```
+
+Após a decodificação, a instrução retornada pode ser enviada diretamente para `execute()`:
+
+```python
+instrucao = cpu.decode(0x03, 0, 1)
+cpu.execute(instrucao)
+```
+
+Caso o opcode não seja reconhecido, o Decode retorna `("INVALIDA",)`.
