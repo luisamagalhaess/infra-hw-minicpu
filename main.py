@@ -15,13 +15,13 @@ class MiniCPU:
         self.ciclo = 0
 
     def _indice_registrador(self, nome):
-        """Converte R0..R3 em índices e rejeita registradores inexistentes."""
+
         if not isinstance(nome, str) or nome.upper() not in ("R0", "R1", "R2", "R3"):
             raise ValueError(f"Registrador inválido: {nome!r}")
         return int(nome[1])
 
     def _valor(self, operando):
-        """Lê um registrador (R0..R3) ou um valor imediato inteiro."""
+
         if isinstance(operando, str):
             return self.registradores[self._indice_registrador(operando)]
         if type(operando) is not int:
@@ -35,11 +35,7 @@ class MiniCPU:
         return endereco
 
     def execute(self, instrucao):
-        """Executa uma instrução decodificada como (opcode, operando, ...).
 
-        O Fetch é responsável por avançar o PC nas instruções comuns. Apenas
-        JMP, JZ e JNZ alteram o PC aqui.
-        """
         if not self.rodando:
             return
         if not isinstance(instrucao, (tuple, list)) or not instrucao:
